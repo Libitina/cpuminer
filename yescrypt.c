@@ -66,7 +66,7 @@ static int yescrypt_bitzeny(const uint8_t *passwd, size_t passwdlen,
     return retval;
 }
 
-static void yescrypt_hash(const char *input, char *output)
+static inline void yescrypt_hash(const char *input, char *output)
 {
     yescrypt_bitzeny((const uint8_t *) input, 80,
                      (const uint8_t *) input, 80,
@@ -82,7 +82,7 @@ struct work_restart {
 extern struct work_restart *work_restart;
 extern bool fulltest(const uint32_t *hash, const uint32_t *target);
 
-static int pretest(const uint32_t *hash, const uint32_t *target)
+static inline int pretest(const uint32_t *hash, const uint32_t *target)
 {
 	return hash[7] < target[7];
 }

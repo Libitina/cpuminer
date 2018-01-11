@@ -85,12 +85,12 @@ static inline void drop_policy(void)
 
 static inline void affine_to_cpu(int id, int cpu)
 {
-	 cpu_set_t set;
-	 CPU_ZERO(&set);
-	 CPU_SET(cpu, &set);
+	cpu_set_t set;
+	CPU_ZERO(&set);
+	CPU_SET(cpu, &set);
 
-	 pthread_t thr = pthread_self();
-	 pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
+	pthread_t thr = pthread_self();
+	pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
 }
 #endif
 
@@ -1119,13 +1119,16 @@ static void *miner_thread(void *userdata)
 	int thr_id = mythr->id;
 	struct work work = {{0}};
 	uint32_t max_nonce;
-	uint32_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1);
+	uint32_t end_nonce;
 	unsigned char *scratchbuf = NULL;
 	char s[16];
 	int i;
-	
+	int cpuNo = 0;
+
 	if(opt_n_threads == (thr_id + 1)){
-	end_nonce = 0xffffffffU;
+		end_nonce = 0xffffffffU;
+	}else{
+		end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1);
 	}
 
 	/* Set worker threads to nice 19 and then preferentially to SCHED_IDLE
@@ -1138,17 +1141,40 @@ static void *miner_thread(void *userdata)
 
 	/* Cpu affinity only makes sense if the number of threads is a multiple
 	 * of the number of CPUs */
-	if (num_processors > 1 && opt_n_threads <= (num_processors/2)) {
-	if (!opt_quiet)
-	applog(LOG_INFO, "Binding thread %d to cpu %d",
-	thr_id, thr_id * 2);
-	affine_to_cpu(thr_id, thr_id * 2);
-	} else
-	if (num_processors > 1 && opt_n_threads % num_processors == 0) {
-		if (!opt_quiet)
-			applog(LOG_INFO, "Binding thread %d to cpu %d",
-			       thr_id, thr_id % num_processors);
-		affine_to_cpu(thr_id, thr_id % num_processors);
+	if (num_processors > 1) {
+		if (opt_n_threads <= (num_processors/2)) {
+			cpuNo = thr_id * 2;
+			if (!opt_quiet)
+				applog(LOG_INFO, "Binding thread %d to cpu %d",
+				       thr_id, cpuNo);
+			affine_to_cpu(thr_id, cpuNo);
+		} else if (((num_processors/2) < opt_n_threads) && (opt_n_threads <= num_processors)) {
+			if (thr_id < (num_processors/2) ){
+				cpuNo = thr_id * 2;
+			}else{
+				if ( (((opt_n_threads - (num_processors/2)) % 4) == 0) && ((num_processors%4)==0) ){
+					int cpuPart = (thr_id - (num_processors/2) + 1) % 4; //1,2,3,0
+					int cpuPartSub = (thr_id - (num_processors/2)) / 4;
+					cpuNo = (num_processors / 4) * cpuPart + cpuPartSub * 2 + 1;
+				}else{
+					if (thr_id % 2) {
+						cpuNo = (thr_id - (num_processors/2));
+					}else{
+						cpuNo = num_processors - 1 - (thr_id - (num_processors/2));
+					}
+				}
+			}
+			if (!opt_quiet)
+				applog(LOG_INFO, "Binding thread %d to cpu %d",
+				       thr_id, cpuNo);
+			affine_to_cpu(thr_id, cpuNo);
+		} else if (opt_n_threads % num_processors == 0) {
+			cpuNo = thr_id % num_processors;
+			if (!opt_quiet)
+				applog(LOG_INFO, "Binding thread %d to cpu %d",
+				       thr_id, cpuNo);
+			affine_to_cpu(thr_id, cpuNo);
+		}
 	}
 
 	if (opt_algo == ALGO_SCRYPT) {
@@ -1233,9 +1259,9 @@ static void *miner_thread(void *userdata)
 		/* scan nonces for a proof-of-work hash */
 		switch (opt_algo) {
 		case ALGO_YESCRYPT:
-		rc = scanhash_yescrypt(thr_id, work.data, work.target,
+			rc = scanhash_yescrypt(thr_id, work.data, work.target,
 					       max_nonce, &hashes_done);
-		break;
+			break;
 
 		case ALGO_SCRYPT:
 			rc = scanhash_scrypt(thr_id, work.data, scratchbuf, work.target,
@@ -1438,6 +1464,12 @@ static void *stratum_thread(void *userdata)
 	if (!stratum.url)
 		goto out;
 	applog(LOG_INFO, "Starting Stratum on %s", stratum.url);
+
+	if(num_processors > 1){
+		if (!opt_quiet)
+			applog(LOG_INFO, "Binding Stratum thread to cpu 1");
+		affine_to_cpu(0, 1);
+	}
 
 	while (1) {
 		int failures = 0;

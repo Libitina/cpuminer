@@ -676,16 +676,20 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 {
 	const salsa20_blk_t * VROM = shared->shared1.aligned;
 	uint32_t VROM_mask = shared->mask1;
-	size_t s = 2 * r;
+	const size_t s = 2 * r;
 	salsa20_blk_t * X = V, * Y;
 	uint32_t i, j;
 	size_t k;
+	uint32_t iTx;
 
 	/* 1: X <-- B */
 	/* 3: V_i <-- X */
-	for (k = 0; k < 2 * r; k++) {
-		for (i = 0; i < 16; i++) {
-			X[k].w[i] = le32dec(&B[(k * 16 + (i * 5 % 16)) * 4]);
+//	for (k = 0; k < 2 * r; k++) {
+	for (k = 0; k < s; k++) {
+//		for (i = 0; i < 16; i++) {
+		for (i=0,iTx=0; i < 16; i++, iTx+=5) {
+//			X[k].w[i] = le32dec(&B[(k * 16 + (i * 5 % 16)) * 4]);
+			X[k].w[i] = le32dec(&B[(k << 6) + ((iTx & 0xf) << 2)]);
 		}
 	}
 
@@ -870,9 +874,12 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 	}
 
 	/* B' <-- X */
-	for (k = 0; k < 2 * r; k++) {
-		for (i = 0; i < 16; i++) {
-			le32enc(&B[(k * 16 + (i * 5 % 16)) * 4], X[k].w[i]);
+//	for (k = 0; k < 2 * r; k++) {
+	for (k = 0; k < s; k++) {
+//		for (i = 0; i < 16; i++) {
+		for (i=0, iTx=0; i < 16; i++, iTx+=5) {
+//			le32enc(&B[(k * 16 + (i * 5 % 16)) * 4], X[k].w[i]);
+			le32enc(&B[(k << 6) + ((iTx & 0xf) << 2)], X[k].w[i]);
 		}
 	}
 }
@@ -894,20 +901,24 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 {
 	const salsa20_blk_t * VROM = shared->shared1.aligned;
 	uint32_t VROM_mask = shared->mask1;
-	size_t s = 2 * r;
+	const size_t s = 2 * r;
 	salsa20_blk_t * X = XY, * Y = &XY[s];
 	uint64_t i;
 	uint32_t j;
 	size_t k;
+	uint64_t iTx;
 
 	if (Nloop == 0)
 		return;
 
 	/* X <-- B' */
 	/* 3: V_i <-- X */
-	for (k = 0; k < 2 * r; k++) {
-		for (i = 0; i < 16; i++) {
-			X[k].w[i] = le32dec(&B[(k * 16 + (i * 5 % 16)) * 4]);
+//	for (k = 0; k < 2 * r; k++) {
+	for (k = 0; k < s; k++) {
+//		for (i = 0; i < 16; i++) {
+		for (i = 0, iTx=0; i < 16; i++, iTx+=5) {
+//			X[k].w[i] = le32dec(&B[(k * 16 + (i * 5 % 16)) * 4]);
+			X[k].w[i] = le32dec(&B[(k << 6) + ((iTx & 0xf) << 2)]);
 		}
 	}
 
@@ -1013,9 +1024,12 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 	}
 
 	/* 10: B' <-- X */
-	for (k = 0; k < 2 * r; k++) {
-		for (i = 0; i < 16; i++) {
-			le32enc(&B[(k * 16 + (i * 5 % 16)) * 4], X[k].w[i]);
+//	for (k = 0; k < 2 * r; k++) {
+	for (k = 0; k < s; k++) {
+//		for (i = 0; i < 16; i++) {
+		for (i = 0, iTx=0; i < 16; i++, iTx+=5) {
+//			le32enc(&B[(k * 16 + (i * 5 % 16)) * 4], X[k].w[i]);
+			le32enc(&B[(k << 6) + ((iTx & 0xf) << 2)], X[k].w[i]);
 		}
 	}
 }
@@ -1024,7 +1038,7 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
  * p2floor(x):
  * Largest power of 2 not greater than argument.
  */
-static uint64_t
+static inline uint64_t
 p2floor(uint64_t x)
 {
 	uint64_t y;
@@ -1050,7 +1064,8 @@ smix(uint8_t * B, size_t r, uint32_t N, uint32_t p, uint32_t t,
     salsa20_blk_t * V, uint32_t NROM, const yescrypt_shared_t * shared,
     salsa20_blk_t * XY, void * S)
 {
-	size_t s = 2 * r;
+//	size_t s = 2 * r;
+	const size_t s = 2 * r;
 	uint32_t Nchunk = N / p;
 	uint64_t Nloop_all, Nloop_rw;
 	uint32_t i;
@@ -1097,7 +1112,8 @@ smix(uint8_t * B, size_t r, uint32_t N, uint32_t p, uint32_t t,
 		uint32_t Np = (i < p - 1) ? Nchunk : (N - Vchunk);
 		void * Sp = S ? ((uint8_t *)S + i * S_SIZE_ALL) : S;
 		if (Sp)
-			smix1(Bp, 1, S_SIZE_ALL / 128,
+//			smix1(Bp, 1, S_SIZE_ALL / 128,
+			smix1(Bp, 1, S_SIZE_ALL >> 7,
 			    flags & ~YESCRYPT_PWXFORM,
 			    Sp, NROM, shared, XYp, NULL);
 		if (!(flags & __YESCRYPT_INIT_SHARED_2))

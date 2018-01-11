@@ -17,16 +17,16 @@ echo "${CURL_PACKAGE_FILE_SHA256}  ${CURL_PACKAGE_FILE}" > $CURL_CHECKSUM_FILE
 sha256sum -c $CURL_CHECKSUM_FILE
 rm $CURL_CHECKSUM_FILE
 
-wget ftp://sourceware.org/pub/pthreads-win32/$PT_PACKAGE_FILE -O $PT_PACKAGE_FILE
-echo "${PT_PACKAGE_FILE_SHA256}  ${PT_PACKAGE_FILE}" > $PT_CHECKSUM_FILE
-sha256sum -c $PT_CHECKSUM_FILE
-rm $PT_CHECKSUM_FILE
+#wget ftp://sourceware.org/pub/pthreads-win32/$PT_PACKAGE_FILE -O $PT_PACKAGE_FILE
+#echo "${PT_PACKAGE_FILE_SHA256}  ${PT_PACKAGE_FILE}" > $PT_CHECKSUM_FILE
+#sha256sum -c $PT_CHECKSUM_FILE
+#rm $PT_CHECKSUM_FILE
 
 rm -rf pthread-win32
 git clone https://github.com/GerHobbelt/pthread-win32.git
 
 tar zxvf $CURL_PACKAGE_FILE
-tar zxvf $PT_PACKAGE_FILE
+#tar zxvf $PT_PACKAGE_FILE
 
 cd $CURL_PACKAGE
 ./configure --host=x86_64-w64-mingw32 --disable-shared --enable-static --with-winssl --prefix=$PREFIX
