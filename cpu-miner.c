@@ -77,7 +77,7 @@ static inline void affine_to_cpu(int id, int cpu)
 	CPU_SET(cpu, &set);
 	cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID, -1, sizeof(cpuset_t), &set);
 }
-#else
+#elif defined(WIN32)
 #include <pthread.h>
 static inline void drop_policy(void)
 {
@@ -91,6 +91,14 @@ static inline void affine_to_cpu(int id, int cpu)
 
 	pthread_t thr = pthread_self();
 	pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
+}
+#else
+static inline void drop_policy(void)
+{
+}
+
+static inline void affine_to_cpu(int id, int cpu)
+{
 }
 #endif
 

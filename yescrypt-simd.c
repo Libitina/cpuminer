@@ -670,7 +670,7 @@ integerify(const salsa20_blk_t * B, size_t r)
  * bytes as well saves cache lines, but might result in cache bank conflicts).
  */
 static void
-smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
+smix1(uint8_t * B, size_t r, const uint32_t N, yescrypt_flags_t flags,
     salsa20_blk_t * V, uint32_t NROM, const yescrypt_shared_t * shared,
     salsa20_blk_t * XY, void * S)
 {
@@ -681,6 +681,8 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 	uint32_t i, j;
 	size_t k;
 	uint32_t iTx;
+	const uint32_t ND2 = N / 2;
+	const uint32_t NM1 = N - 1;
 
 	/* 1: X <-- B */
 	/* 3: V_i <-- X */
@@ -695,8 +697,8 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 
 	if (NROM && (VROM_mask & 1)) {
 		uint32_t n;
-		salsa20_blk_t * V_n;
-		const salsa20_blk_t * V_j;
+		salsa20_blk_t* V_n;
+		const salsa20_blk_t* V_j;
 
 		/* 4: X <-- H(X) */
 		/* 3: V_i <-- X */
@@ -718,7 +720,8 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 		}
 
 		for (n = 2; n < N; n <<= 1) {
-			uint32_t m = (n < N / 2) ? n : (N - 1 - n);
+//			uint32_t m = (n < N / 2) ? n : (N - 1 - n);
+			uint32_t m = (n < ND2) ? n : (NM1 - n);
 
 			V_n = &V[n * s];
 
@@ -762,17 +765,20 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 		/* X <-- X \xor V_j */
 		/* 4: X <-- H(X) */
 		/* 3: V_i <-- X */
-		Y = &V[(N - 1) * s];
+//		Y = &V[(N - 1) * s];
+		Y = &V[NM1 * s];
 		j = blockmix_xor(X, V_j, Y, r, 0, S);
 
-		if (((N - 1) & VROM_mask) == 1) {
+//		if (((N - 1) & VROM_mask) == 1) {
+		if (((NM1) & VROM_mask) == 1) {
 			/* j <-- Integerify(X) mod NROM */
 			j &= NROM - 1;
 			V_j = &VROM[j * s];
 		} else {
 			/* j <-- Wrap(Integerify(X), i) */
 			j &= n - 1;
-			j += N - 1 - n;
+//			j += N - 1 - n;
+			j += NM1 - n;
 			V_j = &V[j * s];
 		}
 
@@ -796,7 +802,8 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 		j = integerify(X, r);
 
 		for (n = 2; n < N; n <<= 1) {
-			uint32_t m = (n < N / 2) ? n : (N - 1 - n);
+//			uint32_t m = (n < N / 2) ? n : (N - 1 - n);
+			uint32_t m = (n < ND2) ? n : (NM1 - n);
 
 			V_n = &V[n * s];
 
@@ -837,12 +844,14 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 		/* X <-- X \xor V_j */
 		/* 4: X <-- H(X) */
 		/* 3: V_i <-- X */
-		Y = &V[(N - 1) * s];
+//		Y = &V[(N - 1) * s];
+		Y = &V[(NM1) * s];
 		j = blockmix_xor(X, V_j, Y, r, 0, S);
 
 		/* j <-- Wrap(Integerify(X), i) */
 		j &= n - 1;
-		j += N - 1 - n;
+//		j += N - 1 - n;
+		j += NM1 - n;
 		V_j = &V[j * s];
 
 		/* X <-- X \xor V_j */
@@ -851,7 +860,8 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
 		blockmix_xor(Y, V_j, X, r, 0, S);
 	} else {
 		/* 2: for i = 0 to N - 1 do */
-		for (i = 1; i < N - 1; i += 2) {
+//		for (i = 1; i < N - 1; i += 2) {
+		for (i = 1; i < NM1; i += 2) {
 			/* 4: X <-- H(X) */
 			/* 3: V_i <-- X */
 			Y = &V[i * s];
@@ -895,7 +905,7 @@ smix1(uint8_t * B, size_t r, uint32_t N, yescrypt_flags_t flags,
  * in cache bank conflicts).
  */
 static void
-smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
+smix2(uint8_t * B, size_t r, const uint32_t N, uint64_t Nloop,
     yescrypt_flags_t flags, salsa20_blk_t * V, uint32_t NROM,
     const yescrypt_shared_t * shared, salsa20_blk_t * XY, void * S)
 {
@@ -907,6 +917,7 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 	uint32_t j;
 	size_t k;
 	uint64_t iTx;
+	const uint32_t NM1 = N-1;
 
 	if (Nloop == 0)
 		return;
@@ -925,7 +936,8 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 	i = Nloop / 2;
 
 	/* 7: j <-- Integerify(X) mod N */
-	j = integerify(X, r) & (N - 1);
+//	j = integerify(X, r) & (N - 1);
+	j = integerify(X, r) & (NM1);
 
 /*
  * Normally, NROM implies YESCRYPT_RW, but we check for these separately
@@ -935,7 +947,7 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 	if (NROM && (flags & YESCRYPT_RW)) {
 		/* 6: for i = 0 to N - 1 do */
 		for (i = 0; i < Nloop; i += 2) {
-			salsa20_blk_t * V_j = &V[j * s];
+			salsa20_blk_t* V_j = &V[j * s];
 
 			/* 8: X <-- H(X \xor V_j) */
 			/* V_j <-- Xprev \xor V_j */
@@ -952,7 +964,8 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 				/* 7: j <-- Integerify(X) mod N */
 				j = blockmix_xor(Y, VROM_j, X, r, 1, S);
 			} else {
-				j &= N - 1;
+//				j &= N - 1;
+				j &= NM1;
 				V_j = &V[j * s];
 
 				/* 8: X <-- H(X \xor V_j) */
@@ -960,13 +973,14 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 				/* j <-- Integerify(X) mod NROM */
 				j = blockmix_xor_save(Y, V_j, X, r, S);
 			}
-			j &= N - 1;
+//			j &= N - 1;
+			j &= NM1;
 			V_j = &V[j * s];
 		}
 	} else if (NROM) {
 		/* 6: for i = 0 to N - 1 do */
 		for (i = 0; i < Nloop; i += 2) {
-			const salsa20_blk_t * V_j = &V[j * s];
+			const salsa20_blk_t* V_j = &V[j * s];
 
 			/* 8: X <-- H(X \xor V_j) */
 			/* V_j <-- Xprev \xor V_j */
@@ -977,49 +991,55 @@ smix2(uint8_t * B, size_t r, uint32_t N, uint64_t Nloop,
 				j &= NROM - 1;
 				V_j = &VROM[j * s];
 			} else {
-				j &= N - 1;
+//				j &= N - 1;
+				j &= NM1;
 				V_j = &V[j * s];
 			}
 
 			/* X <-- H(X \xor VROM_j) */
 			/* 7: j <-- Integerify(X) mod N */
 			j = blockmix_xor(Y, V_j, X, r, 1, S);
-			j &= N - 1;
+//			j &= N - 1;
+			j &= NM1;
 			V_j = &V[j * s];
 		}
 	} else if (flags & YESCRYPT_RW) {
 		/* 6: for i = 0 to N - 1 do */
 		do {
-			salsa20_blk_t * V_j = &V[j * s];
+			salsa20_blk_t* V_j = &V[j * s];
 
 			/* 8: X <-- H(X \xor V_j) */
 			/* V_j <-- Xprev \xor V_j */
 			/* 7: j <-- Integerify(X) mod N */
 			j = blockmix_xor_save(X, V_j, Y, r, S);
-			j &= N - 1;
+//			j &= N - 1;
+			j &= NM1;
 			V_j = &V[j * s];
 
 			/* 8: X <-- H(X \xor V_j) */
 			/* V_j <-- Xprev \xor V_j */
 			/* 7: j <-- Integerify(X) mod N */
 			j = blockmix_xor_save(Y, V_j, X, r, S);
-			j &= N - 1;
+//			j &= N - 1;
+			j &= NM1;
 		} while (--i);
 	} else {
 		/* 6: for i = 0 to N - 1 do */
 		do {
-			const salsa20_blk_t * V_j = &V[j * s];
+			salsa20_blk_t* V_j = &V[j * s];
 
 			/* 8: X <-- H(X \xor V_j) */
 			/* 7: j <-- Integerify(X) mod N */
 			j = blockmix_xor(X, V_j, Y, r, 0, S);
-			j &= N - 1;
+//			j &= N - 1;
+			j &= NM1;
 			V_j = &V[j * s];
 
 			/* 8: X <-- H(X \xor V_j) */
 			/* 7: j <-- Integerify(X) mod N */
 			j = blockmix_xor(Y, V_j, X, r, 0, S);
-			j &= N - 1;
+//			j &= N - 1;
+			j &= NM1;
 		} while (--i);
 	}
 
