@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <time.h>
+#include <curl/curl.h>
 #ifdef WIN32
 #include <windows.h>
 #else
@@ -34,7 +35,7 @@
 #endif
 #endif
 #include <jansson.h>
-#include <curl/curl.h>
+//#include <curl/curl.h>
 #include "compat.h"
 #include "miner.h"
 
@@ -969,6 +970,14 @@ static void *workio_thread(void *userdata)
 		return NULL;
 	}
 
+	if(num_processors > 1){
+		int coreBlocks = num_processors / 8;
+		int cpuNo = (coreBlocks==0) ? num_processors-1 : 7;
+		if (!opt_quiet)
+			applog(LOG_INFO, "Binding WorkIO thread to cpu %d", cpuNo);
+		affine_to_cpu(0, cpuNo);
+	}
+
 	while (ok) {
 		struct workio_cmd *wc;
 
@@ -1474,9 +1483,11 @@ static void *stratum_thread(void *userdata)
 	applog(LOG_INFO, "Starting Stratum on %s", stratum.url);
 
 	if(num_processors > 1){
+		int coreBlocks = num_processors / 8;
+		int cpuNo = (coreBlocks==0) ? num_processors-1 : 13;
 		if (!opt_quiet)
-			applog(LOG_INFO, "Binding Stratum thread to cpu 1");
-		affine_to_cpu(0, 1);
+			applog(LOG_INFO, "Binding Stratum thread to cpu %d", cpuNo);
+		affine_to_cpu(0, cpuNo);
 	}
 
 	while (1) {

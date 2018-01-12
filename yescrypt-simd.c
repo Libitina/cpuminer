@@ -680,7 +680,7 @@ smix1(uint8_t * B, size_t r, const uint32_t N, yescrypt_flags_t flags,
 	salsa20_blk_t * X = V, * Y;
 	uint32_t i, j;
 	size_t k;
-	uint32_t iTx;
+	uint32_t iT5;
 	const uint32_t ND2 = N / 2;
 	const uint32_t NM1 = N - 1;
 
@@ -689,9 +689,9 @@ smix1(uint8_t * B, size_t r, const uint32_t N, yescrypt_flags_t flags,
 //	for (k = 0; k < 2 * r; k++) {
 	for (k = 0; k < s; k++) {
 //		for (i = 0; i < 16; i++) {
-		for (i=0,iTx=0; i < 16; i++, iTx+=5) {
+		for (i=0,iT5=0; i < 16; i++, iT5+=5) {
 //			X[k].w[i] = le32dec(&B[(k * 16 + (i * 5 % 16)) * 4]);
-			X[k].w[i] = le32dec(&B[(k << 6) + ((iTx & 0xf) << 2)]);
+			X[k].w[i] = le32dec(&B[(k << 6) + ((iT5 & 0xf) << 2)]);
 		}
 	}
 
@@ -887,9 +887,9 @@ smix1(uint8_t * B, size_t r, const uint32_t N, yescrypt_flags_t flags,
 //	for (k = 0; k < 2 * r; k++) {
 	for (k = 0; k < s; k++) {
 //		for (i = 0; i < 16; i++) {
-		for (i=0, iTx=0; i < 16; i++, iTx+=5) {
+		for (i=0, iT5=0; i < 16; i++, iT5+=5) {
 //			le32enc(&B[(k * 16 + (i * 5 % 16)) * 4], X[k].w[i]);
-			le32enc(&B[(k << 6) + ((iTx & 0xf) << 2)], X[k].w[i]);
+			le32enc(&B[(k << 6) + ((iT5 & 0xf) << 2)], X[k].w[i]);
 		}
 	}
 }
@@ -916,7 +916,7 @@ smix2(uint8_t * B, size_t r, const uint32_t N, uint64_t Nloop,
 	uint64_t i;
 	uint32_t j;
 	size_t k;
-	uint64_t iTx;
+	uint64_t iT5;
 	const uint32_t NM1 = N-1;
 
 	if (Nloop == 0)
@@ -927,9 +927,9 @@ smix2(uint8_t * B, size_t r, const uint32_t N, uint64_t Nloop,
 //	for (k = 0; k < 2 * r; k++) {
 	for (k = 0; k < s; k++) {
 //		for (i = 0; i < 16; i++) {
-		for (i = 0, iTx=0; i < 16; i++, iTx+=5) {
+		for (i = 0, iT5=0; i < 16; i++, iT5+=5) {
 //			X[k].w[i] = le32dec(&B[(k * 16 + (i * 5 % 16)) * 4]);
-			X[k].w[i] = le32dec(&B[(k << 6) + ((iTx & 0xf) << 2)]);
+			X[k].w[i] = le32dec(&B[(k << 6) + ((iT5 & 0xf) << 2)]);
 		}
 	}
 
@@ -1047,9 +1047,9 @@ smix2(uint8_t * B, size_t r, const uint32_t N, uint64_t Nloop,
 //	for (k = 0; k < 2 * r; k++) {
 	for (k = 0; k < s; k++) {
 //		for (i = 0; i < 16; i++) {
-		for (i = 0, iTx=0; i < 16; i++, iTx+=5) {
+		for (i = 0, iT5=0; i < 16; i++, iT5+=5) {
 //			le32enc(&B[(k * 16 + (i * 5 % 16)) * 4], X[k].w[i]);
-			le32enc(&B[(k << 6) + ((iTx & 0xf) << 2)], X[k].w[i]);
+			le32enc(&B[(k << 6) + ((iT5 & 0xf) << 2)], X[k].w[i]);
 		}
 	}
 }
