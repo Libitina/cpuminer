@@ -93,6 +93,21 @@ static inline void affine_to_cpu(int id, int cpu)
 	pthread_t thr = pthread_self();
 	pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
 }
+#elif defined(__APPLE_)
+#include <mach/thread_policy.h>
+#include <mach/thread_act.h>
+#define SYSCTL_CORE_COUNT   "machdep.cpu.core_count"
+static inline void drop_policy(void)
+{
+}
+
+static inline void affine_to_cpu(int id, int cpu)
+{
+	thread_port_t mach_thread;
+	thread_affinity_policy_data_t policy = { cpu };
+	mach_thread = pthread_mach_thread_np(pthread_self());
+	thread_policy_set(mach_thread, THREAD_AFFINITY_POLICY, (thread_policy_t)&policy, 1);
+}
 #else
 static inline void drop_policy(void)
 {
