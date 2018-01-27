@@ -32,11 +32,27 @@
 #include <sys/types.h>
 
 #include <stdint.h>
+#include <memory.h>
+
+#ifdef __SHA__
+#include <intrin.h>
+#endif
 
 typedef struct SHA256Context {
 	uint32_t state[8];
 	uint32_t count[2];
 	unsigned char buf[64];
+#ifdef __SHA__
+	__m128i h0145;
+	__m128i h2367;
+	union {
+		__m128i x[4];
+		uint32_t dw[16];
+		uint8_t b[64];
+	} m;
+	uint32_t b_cnt; 
+	uint64_t t_cnt;
+#endif
 } SHA256_CTX;
 
 typedef struct HMAC_SHA256Context {
@@ -50,6 +66,12 @@ static void	SHA256_Final(unsigned char [32], SHA256_CTX *);
 static void	HMAC_SHA256_Init(HMAC_SHA256_CTX *, const void *, size_t);
 static void	HMAC_SHA256_Update(HMAC_SHA256_CTX *, const void *, size_t);
 static void	HMAC_SHA256_Final(unsigned char [32], HMAC_SHA256_CTX *);
+
+#ifdef __SHA__
+static void	SHA256HW_Init(SHA256_CTX *);
+static void	SHA256HW_Update(SHA256_CTX *, const void *, size_t);
+static void	SHA256HW_Final(unsigned char [32], SHA256_CTX *);
+#endif
 
 /**
  * PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, c, buf, dkLen):

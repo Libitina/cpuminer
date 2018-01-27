@@ -209,10 +209,47 @@ SHA256_Pad(SHA256_CTX * ctx)
 	SHA256_Update(ctx, len, 8);
 }
 
+#ifdef __SHA__
+static const union {
+		unsigned __int32 dw[64];
+		__m128i x[16];
+} K =
+{
+	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+	0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+	0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+	0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+	0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+	0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+	0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+};
+
+#define H0 0x6a09e667
+#define H1 0xbb67ae85
+#define H2 0x3c6ef372
+#define H3 0xa54ff53a
+#define H4 0x510e527f
+#define H5 0x9b05688c
+#define H6 0x1f83d9ab
+#define H7 0x5be0cd19
+
+typedef union {
+	unsigned __int32 dw[4];
+	__m128i x;
+} DWX;
+static const DWX h0145_init = { H5, H4, H1, H0 };
+static const DWX h2367_init = { H7, H6, H3, H2 };
+#endif
+
 /* SHA-256 initialization.  Begins a SHA-256 operation. */
 static void
 SHA256_Init(SHA256_CTX * ctx)
 {
+#ifdef __SHA__
+	SHA256HW_Init(ctx);
+	return;
+#endif
 
 	/* Zero bits processed so far */
 	ctx->count[0] = ctx->count[1] = 0;
@@ -228,10 +265,24 @@ SHA256_Init(SHA256_CTX * ctx)
 	ctx->state[7] = 0x5BE0CD19;
 }
 
+#ifdef __SHA__
+static void
+SHA256HW_Init(SHA256_CTX * ctx)
+{
+	ctx->b_cnt = ctx->t_cnt = 0;
+	ctx->h0145 = h0145_init.x;
+	ctx->h2367 = h2367_init.x;
+}
+#endif
+
 /* Add bytes into the hash */
 static void
 SHA256_Update(SHA256_CTX * ctx, const void *in, size_t len)
 {
+#ifdef __SHA__
+	SHA256HW_Update(ctx, in, len);
+	return;
+#endif
 	uint32_t bitlen[2];
 	uint32_t r;
 	const unsigned char *src = in;
@@ -271,6 +322,71 @@ SHA256_Update(SHA256_CTX * ctx, const void *in, size_t len)
 	memcpy(ctx->buf, src, len);
 }
 
+#ifdef __SHA__
+static void
+SHA256HW_ProcMsgBlock(SHA256_CTX * ctx)
+{
+	union {
+		__m128i x[16];
+		uint32_t dw[64];
+	} w;
+
+	static const union {
+		unsigned char b[16];
+		__m128i x;
+	} byteswapindex = { 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12 };
+	w.x[0] = _mm_shuffle_epi8(ctx->m.x[0], byteswapindex.x);
+	w.x[1] = _mm_shuffle_epi8(ctx->m.x[1], byteswapindex.x);
+	w.x[2] = _mm_shuffle_epi8(ctx->m.x[2], byteswapindex.x);
+	w.x[3] = _mm_shuffle_epi8(ctx->m.x[3], byteswapindex.x);
+
+	for (size_t i = 16; i < 64; i += 4) {
+		size_t iX = i / 4;
+		__m128i t1 = _mm_sha256msg1_epu32(w.x[iX - 4], w.x[iX - 3]);
+		t1 = _mm_add_epi32(t1, _mm_loadu_si128((__m128i*)&(w.dw[i - 7])));
+		w.x[iX] = _mm_sha256msg2_epu32(t1, w.x[iX - 1]);
+	}
+
+	__m128i state1 = ctx->h0145;
+	__m128i state2 = ctx->h2367;
+
+	for (size_t tX = 0; tX < 16; tX++) {
+		__m128i wk = _mm_add_epi32(w.x[tX], K.x[tX]);
+		state2 = _mm_sha256rnds2_epu32(state2, state1, wk);
+		wk = _mm_srli_si128(wk, 8);
+		state1 = _mm_sha256rnds2_epu32(state1, state2, wk);
+	}
+
+	ctx->h0145 = _mm_add_epi32(ctx->h0145, state1);
+	ctx->h2367 = _mm_add_epi32(ctx->h2367, state2);
+}
+
+static void
+SHA256HW_Update(SHA256_CTX * ctx, const void *in, size_t len)
+{
+	const unsigned char* p = (const unsigned char*)in;
+	size_t count_remain = len;
+
+	while (count_remain) {
+		size_t c = 64 - ctx->b_cnt;
+		if (count_remain < c) 
+			c = count_remain;
+
+		memcpy(ctx->m.b + ctx->b_cnt, p, c);
+		p += c;
+		ctx->b_cnt += c;
+		count_remain -= c;
+
+		if (ctx->b_cnt == 64) {
+			SHA256HW_ProcMsgBlock( ctx );
+			ctx->b_cnt = 0;
+		}
+	}
+
+	ctx->t_cnt += len;
+}
+#endif
+
 /*
  * SHA-256 finalization.  Pads the input data, exports the hash value,
  * and clears the context state.
@@ -278,6 +394,10 @@ SHA256_Update(SHA256_CTX * ctx, const void *in, size_t len)
 static void
 SHA256_Final(unsigned char digest[32], SHA256_CTX * ctx)
 {
+#ifdef __SHA__
+	SHA256HW_Final(digest, ctx);
+	return;
+#endif
 
 	/* Add padding */
 	SHA256_Pad(ctx);
@@ -288,6 +408,43 @@ SHA256_Final(unsigned char digest[32], SHA256_CTX * ctx)
 	/* Clear the context state */
 	memset((void *)ctx, 0, sizeof(*ctx));
 }
+
+#ifdef __SHA__
+static void
+SHA256HW_Final(unsigned char digest[32], SHA256_CTX * ctx)
+{
+	ctx->m.b[ctx->b_cnt] = 0x80;
+	ctx->b_cnt += 1;
+
+	if (ctx->b_cnt + 8 > 64) {
+		memset(ctx->m.b + ctx->b_cnt, 0, 64 - ctx->b_cnt);
+		SHA256HW_ProcMsgBlock( ctx );
+		ctx->b_cnt = 0;
+	}
+	memset(ctx->m.b + ctx->b_cnt, 0, 64 - 8 - ctx->b_cnt);
+
+	ctx->t_cnt <<= 3;
+	ctx->m.dw[14] = _byteswap_ulong((unsigned __int32)(ctx->t_cnt >> 32));
+	ctx->m.dw[15] = _byteswap_ulong((unsigned __int32)(ctx->t_cnt ));
+
+	SHA256HW_ProcMsgBlock( ctx );
+
+	__m128i h0123 = _mm_unpackhi_epi64(ctx->h2367, ctx->h0145);
+	__m128i h4567 = _mm_unpacklo_epi64(ctx->h2367, ctx->h0145);
+
+	static const union {
+		unsigned char b[16];
+		__m128i x;
+	} byteswapindex = { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
+	h0123 = _mm_shuffle_epi8(h0123, byteswapindex.x);
+	h4567 = _mm_shuffle_epi8(h4567, byteswapindex.x);
+
+	__m128i* digestX = (__m128i*)digest;
+	_mm_storeu_si128(digestX, h0123);
+	_mm_storeu_si128(digestX + 1, h4567);
+}
+#endif
 
 /* Initialize an HMAC-SHA256 operation with the given key. */
 static void
