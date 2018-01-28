@@ -708,8 +708,8 @@ static void share_result(int result, const char *reason)
 	result ? accepted_count++ : rejected_count++;
 	pthread_mutex_unlock(&stats_lock);
 
-	sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", 1e-3 * hashrate);
-	applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %s khash/s %s",
+	sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.4f", 1e-3 * hashrate);
+	applog(LOG_INFO, "accepted: %lu/%lu (%.4f%%), %s khash/s %s",
 		   accepted_count,
 		   accepted_count + rejected_count,
 		   100. * accepted_count / (accepted_count + rejected_count),
@@ -1320,7 +1320,7 @@ static void *miner_thread(void *userdata)
 			pthread_mutex_unlock(&stats_lock);
 		}
 		if (!opt_quiet) {
-			sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.2f",
+			sprintf(s, thr_hashrates[thr_id] >= 1e6 ? "%.0f" : "%.4f",
 				1e-3 * thr_hashrates[thr_id]);
 			applog(LOG_INFO, "thread %d: %lu hashes, %s khash/s",
 				thr_id, hashes_done, s);
@@ -1330,7 +1330,7 @@ static void *miner_thread(void *userdata)
 			for (i = 0; i < opt_n_threads && thr_hashrates[i]; i++)
 				hashrate += thr_hashrates[i];
 			if (i == opt_n_threads) {
-				sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", 1e-3 * hashrate);
+				sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.4f", 1e-3 * hashrate);
 				applog(LOG_INFO, "Total: %s khash/s", s);
 			}
 		}
