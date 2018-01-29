@@ -36,6 +36,8 @@
 
 #ifdef __SHA__
 #include <intrin.h>
+#include <stdbool.h>
+extern bool has_sha;
 #endif
 
 typedef struct SHA256Context {
