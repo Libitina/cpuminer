@@ -235,7 +235,7 @@ static const union {
 #define H7 0x5be0cd19
 
 typedef union {
-	unsigned __int32 dw[4];
+	uint32_t dw[4];
 	__m128i x;
 } DWX;
 static const DWX h0145_init = { H5, H4, H1, H0 };

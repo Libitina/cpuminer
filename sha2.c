@@ -14,6 +14,10 @@
 #include <string.h>
 #include <inttypes.h>
 
+#ifdef __SHA__
+#include <intrin.h>
+#endif
+
 #if defined(USE_ASM) && \
 	(defined(__x86_64__) || \
 	 (defined(__arm__) && defined(__APCS_32__)) || \
@@ -199,8 +203,19 @@ static void sha256d_80_swap(uint32_t *hash, const uint32_t *data)
 		hash[i] = swab32(hash[i]);
 }
 
+extern bool has_sha;
+#ifdef __SHA__
+extern void sha256d_hw(unsigned char *hash, const unsigned char *data, int len);
+#endif
+
 void sha256d(unsigned char *hash, const unsigned char *data, int len)
 {
+#ifdef __SHA__
+	if(has_sha){
+		sha256d_hw(hash, data, len);
+		return;
+	}
+#endif
 	uint32_t S[16], T[16];
 	int i, r;
 
@@ -223,6 +238,152 @@ void sha256d(unsigned char *hash, const unsigned char *data, int len)
 	for (i = 0; i < 8; i++)
 		be32enc((uint32_t *)hash + i, T[i]);
 }
+
+#ifdef __SHA__
+static const union {
+		uint32_t dw[64];
+		__m128i x[16];
+} SHA256HW_K =
+{
+	0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+	0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+	0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+	0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+	0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+	0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+	0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+	0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+};
+typedef union {
+	uint32_t dw[4];
+	__m128i x;
+} DWX;
+typedef union {
+	uint8_t b[64];
+	uint32_t dw[16];
+	__m128i x[4];
+} BDWX4;
+#define SHA256_H0 0x6a09e667
+#define SHA256_H1 0xbb67ae85
+#define SHA256_H2 0x3c6ef372
+#define SHA256_H3 0xa54ff53a
+#define SHA256_H4 0x510e527f
+#define SHA256_H5 0x9b05688c
+#define SHA256_H6 0x1f83d9ab
+#define SHA256_H7 0x5be0cd19
+static const DWX h0145_init = { SHA256_H5, SHA256_H4, SHA256_H1, SHA256_H0 };
+static const DWX h2367_init = { SHA256_H7, SHA256_H6, SHA256_H3, SHA256_H2 };
+void sha256hw_init(DWX *state)
+{
+	state[0].x = h0145_init.x;
+	state[1].x = h2367_init.x;
+}
+
+//MsgProc
+void sha256hw_transform(DWX *state, BDWX4 *work)
+{
+	union {
+		__m128i x[16];
+		uint32_t dw[64];
+	} w;
+
+	static const union {
+		uint8_t b[16];
+		__m128i x;
+	} byteswapindex = { 3, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12 };
+	w.x[0] = _mm_shuffle_epi8(work->x[0], byteswapindex.x);
+	w.x[1] = _mm_shuffle_epi8(work->x[1], byteswapindex.x);
+	w.x[2] = _mm_shuffle_epi8(work->x[2], byteswapindex.x);
+	w.x[3] = _mm_shuffle_epi8(work->x[3], byteswapindex.x);
+
+	for (size_t i = 16; i < 64; i += 4) {
+		size_t iX = i / 4;
+		__m128i t1 = _mm_sha256msg1_epu32(w.x[iX - 4], w.x[iX - 3]);
+		t1 = _mm_add_epi32(t1, _mm_loadu_si128((__m128i*)&(w.dw[i - 7])));
+		w.x[iX] = _mm_sha256msg2_epu32(t1, w.x[iX - 1]);
+	}
+
+	__m128i state1 = state[0].x;
+	__m128i state2 = state[1].x;
+	
+	for (size_t tX = 0; tX < 16; tX++) {
+		__m128i wk = _mm_add_epi32(w.x[tX], SHA256HW_K.x[tX]);
+		state2 = _mm_sha256rnds2_epu32(state2, state1, wk);
+		wk = _mm_srli_si128(wk, 8);
+		state1 = _mm_sha256rnds2_epu32(state1, state2, wk);
+	}
+
+	state[0].x = _mm_add_epi32(state[0].x, state1);
+	state[1].x = _mm_add_epi32(state[1].x, state2);
+}
+
+void sha256hw_Final(unsigned char digest[32], DWX *state)
+{
+	__m128i h0123 = _mm_unpackhi_epi64(state[1].x, state[0].x);
+	__m128i h4567 = _mm_unpacklo_epi64(state[1].x, state[0].x);
+
+	static const union {
+		uint8_t b[16];
+		__m128i x;
+	} byteswapindex = { 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 };
+
+	h0123 = _mm_shuffle_epi8(h0123, byteswapindex.x);
+	h4567 = _mm_shuffle_epi8(h4567, byteswapindex.x);
+
+	__m128i* digestX = (__m128i*)digest;
+	_mm_storeu_si128(digestX, h0123);
+	_mm_storeu_si128(digestX + 1, h4567);
+}
+
+
+void sha256hw_Pad(DWX *pS, BDWX4 *pW, int c, int total)
+{
+	uint64_t lenbits = total << 3;
+	pW->b[c] = 0x80;
+	c++;
+
+	if(c > 56) {
+		memset(pW->b + c, 0, 64-c);
+		sha256hw_transform(pS, pW);
+		c = 0;
+	}
+	memset(pW->b + c, 0, 56-c);
+	pW->dw[14] = _byteswap_ulong((uint32_t)(lenbits >> 32));
+	pW->dw[15] = _byteswap_ulong((uint32_t)(lenbits));
+	sha256hw_transform(pS, pW);
+}
+
+void sha256d_hw(unsigned char *hash, const unsigned char *data, int len)
+{
+	DWX S[2];//state [0]:0145 [1]:2367
+	BDWX4 W;
+	int i, c;
+	const unsigned char* p = (const unsigned char*)data;
+	int remain = len;
+
+	sha256hw_init(S);
+	while (remain) {
+		c = (remain < 64) ? remain : 64;
+		memcpy(W.b, p, c);
+		p += c;
+		remain -= c;
+
+		if(c == 64){
+			sha256hw_transform(S, &W);
+			c = 0;
+		}
+	}
+	sha256hw_Pad(S, &W, c, len);
+
+	uint8_t digest[32];
+	sha256hw_Final(digest, S);
+
+	sha256hw_init(S);
+	memcpy(W.b, digest, 32);
+	sha256hw_Pad(S, &W, 32, 32);
+	sha256hw_Final(hash, S);
+}
+#endif //__SHA__
 
 static inline void sha256d_preextend(uint32_t *W)
 {

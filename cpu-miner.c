@@ -1175,11 +1175,16 @@ static void *miner_thread(void *userdata)
 	/* Cpu affinity only makes sense if the number of threads is a multiple
 	 * of the number of CPUs */
 	if (num_processors > 1) {
-		if (opt_n_threads <= (num_processors/2)) {
+		if (opt_n_threads == 1) {
+			//For Debug
+			cpuNo = num_processors - 1;
+			if (!opt_quiet)
+				applog(LOG_INFO, "Binding thread %d to cpu %d", thr_id, cpuNo);
+			affine_to_cpu(thr_id, cpuNo);
+		} else if (opt_n_threads <= (num_processors/2)) {
 			cpuNo = thr_id * 2;
 			if (!opt_quiet)
-				applog(LOG_INFO, "Binding thread %d to cpu %d",
-				       thr_id, cpuNo);
+				applog(LOG_INFO, "Binding thread %d to cpu %d", thr_id, cpuNo);
 			affine_to_cpu(thr_id, cpuNo);
 		} else if (((num_processors/2) < opt_n_threads) && (opt_n_threads <= num_processors)) {
 			if (thr_id < (num_processors/2) ){
@@ -1198,14 +1203,12 @@ static void *miner_thread(void *userdata)
 				}
 			}
 			if (!opt_quiet)
-				applog(LOG_INFO, "Binding thread %d to cpu %d",
-				       thr_id, cpuNo);
+				applog(LOG_INFO, "Binding thread %d to cpu %d", thr_id, cpuNo);
 			affine_to_cpu(thr_id, cpuNo);
 		} else if (opt_n_threads % num_processors == 0) {
 			cpuNo = thr_id % num_processors;
 			if (!opt_quiet)
-				applog(LOG_INFO, "Binding thread %d to cpu %d",
-				       thr_id, cpuNo);
+				applog(LOG_INFO, "Binding thread %d to cpu %d", thr_id, cpuNo);
 			affine_to_cpu(thr_id, cpuNo);
 		}
 	}
