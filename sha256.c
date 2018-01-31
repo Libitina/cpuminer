@@ -243,12 +243,15 @@ static const DWX h2367_init = { H7, H6, H3, H2 };
 #endif
 
 /* SHA-256 initialization.  Begins a SHA-256 operation. */
+#include <stdio.h>
 static void
 SHA256_Init(SHA256_CTX * ctx)
 {
 #ifdef __SHA__
-	SHA256HW_Init(ctx);
-	return;
+	if(has_sha){
+		SHA256HW_Init(ctx);
+		return;
+	}
 #endif
 
 	/* Zero bits processed so far */
@@ -280,8 +283,10 @@ static void
 SHA256_Update(SHA256_CTX * ctx, const void *in, size_t len)
 {
 #ifdef __SHA__
-	SHA256HW_Update(ctx, in, len);
-	return;
+	if(has_sha){
+		SHA256HW_Update(ctx, in, len);
+		return;
+	}
 #endif
 	uint32_t bitlen[2];
 	uint32_t r;
@@ -395,8 +400,10 @@ static void
 SHA256_Final(unsigned char digest[32], SHA256_CTX * ctx)
 {
 #ifdef __SHA__
-	SHA256HW_Final(digest, ctx);
-	return;
+	if(has_sha){
+		SHA256HW_Final(digest, ctx);
+		return;
+	}
 #endif
 
 	/* Add padding */

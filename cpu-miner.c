@@ -186,6 +186,7 @@ static pthread_mutex_t stats_lock;
 static unsigned long accepted_count = 0L;
 static unsigned long rejected_count = 0L;
 static double *thr_hashrates;
+bool has_sha = false;
 
 #ifdef HAVE_GETOPT_LONG
 #include <getopt.h>
@@ -1874,6 +1875,53 @@ static void parse_arg(int key, char *arg, char *pname)
 	}
 }
 
+#ifdef __SHA__
+#ifndef __arm__
+static inline void cpuid(int functionnumber, int output[4]) {
+#if defined (_MSC_VER) || defined (__INTEL_COMPILER)
+	// Microsoft or Intel compiler, intrin.h included
+	__cpuidex(output, functionnumber, 0);
+#elif defined(__GNUC__) || defined(__clang__)
+	// use inline assembly, Gnu/AT&T syntax
+	int a, b, c, d;
+	__asm__ volatile("cpuid" : "=a"(a), "=b"(b), "=c"(c), "=d"(d) : "a"(functionnumber), "c"(0));
+	output[0] = a;
+	output[1] = b;
+	output[2] = c;
+	output[3] = d;
+#else
+	// unknown platform. try inline assembly with masm/intel syntax
+	__asm {
+		mov eax, functionnumber
+		xor ecx, ecx
+		cpuid;
+		mov esi, output
+		mov[esi], eax
+		mov[esi + 4], ebx
+		mov[esi + 8], ecx
+		mov[esi + 12], edx
+	}
+#endif
+}
+#else /* !__arm__ */
+#define cpuid(fn, out) out[0] = 0;
+#endif
+
+#define EBX_Reg  (1)
+#define EXTENDED_FEATURES    (7)
+#define SHA_Flag      (1<<29)
+static inline void check_sha()
+{
+#ifdef __arm__
+	has_sha = false;
+#else
+	int cpu_info[4] = { 0 };
+	cpuid( EXTENDED_FEATURES, cpu_info );
+	has_sha = cpu_info[ EBX_Reg ] & SHA_Flag;
+#endif
+}
+#endif
+
 static void parse_config(json_t *config, char *pname, char *ref)
 {
 	int i;
@@ -1966,6 +2014,10 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s: no URL supplied\n", argv[0]);
 		show_usage_and_exit(1);
 	}
+
+#ifdef __SHA__
+	check_sha();
+#endif
 
 	if (!rpc_userpass) {
 		rpc_userpass = malloc(strlen(rpc_user) + strlen(rpc_pass) + 2);
