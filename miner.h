@@ -122,11 +122,13 @@ static inline void le32enc(void *pp, uint32_t x)
 }
 #endif
 
+#ifndef __MINGW32__
 static inline uint32_t
 _byteswap_ulong(uint32_t in)
 {
-	return (in & 0xff)<<24 + (in & 0xff00)<<8 + (in>>8) & 0xff00 + (in>>16) & 0xff;
+	return (in & 0xff)<<24 | (in & 0xff00)<<8 | (in>>8) & 0xff00 | (in>>24) & 0xff;
 }
+#endif
 
 
 #if JANSSON_MAJOR_VERSION >= 2
