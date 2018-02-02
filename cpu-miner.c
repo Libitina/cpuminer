@@ -63,10 +63,12 @@ static inline void affine_to_cpu(int id, int cpu)
 
 	CPU_ZERO(&set);
 	CPU_SET(cpu, &set);
-	sched_setaffinity(0, sizeof(set), &set);
+//	sched_setaffinity(0, sizeof(set), &set);
+	pthread_t thr = pthread_self();
+	pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
 }
 #elif defined(__FreeBSD__) /* FreeBSD specific policy and affinity management */
-#include <sys/cpuset.h>
+#include <sys/cpufdef __MINGW32__ifdef __MINGW32__set.h>
 static inline void drop_policy(void)
 {
 }
@@ -1881,7 +1883,8 @@ static void parse_arg(int key, char *arg, char *pname)
 #ifdef __SHA__
 #ifndef __arm__
 static inline void cpuid(int functionnumber, int output[4]) {
-#if defined (_MSC_VER) || defined (__INTEL_COMPILER)
+//#if defined (_MSC_VER) || defined (__INTEL_COMPILER)
+#if defined (_MSC_VER) //icc 16.0 does not support __cpuidex
 	// Microsoft or Intel compiler, intrin.h included
 	__cpuidex(output, functionnumber, 0);
 #elif defined(__GNUC__) || defined(__clang__)
