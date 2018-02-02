@@ -15,7 +15,7 @@
 #include <inttypes.h>
 
 #ifdef __SHA__
-#include <intrin.h>
+#include <x86intrin.h>
 #endif
 
 #if defined(USE_ASM) && \

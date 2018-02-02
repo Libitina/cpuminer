@@ -122,6 +122,13 @@ static inline void le32enc(void *pp, uint32_t x)
 }
 #endif
 
+static inline uint32_t
+_byteswap_ulong(uint32_t in)
+{
+	return (in & 0xff)<<24 + (in & 0xff00)<<8 + (in>>8) & 0xff00 + (in>>16) & 0xff;
+}
+
+
 #if JANSSON_MAJOR_VERSION >= 2
 #define JSON_LOADS(str, err_ptr) json_loads(str, 0, err_ptr)
 #define JSON_LOAD_FILE(path, err_ptr) json_load_file(path, 0, err_ptr)

@@ -35,7 +35,7 @@
 #include <memory.h>
 
 #ifdef __SHA__
-#include <intrin.h>
+#include <x86intrin.h>
 #include <stdbool.h>
 extern bool has_sha;
 #endif

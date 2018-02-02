@@ -42,6 +42,13 @@
 
 #include <stdint.h>
 
+
+static inline uint32_t
+_byteswap_ulong(uint32_t in)
+{
+	return (in & 0xff)<<24 + (in & 0xff00)<<8 + (in>>8) & 0xff00 + (in>>16) & 0xff;
+}
+
 static inline uint32_t
 be32dec(const void *pp)
 {

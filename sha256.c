@@ -211,7 +211,7 @@ SHA256_Pad(SHA256_CTX * ctx)
 
 #ifdef __SHA__
 static const union {
-		unsigned __int32 dw[64];
+		uint32_t dw[64];
 		__m128i x[16];
 } K =
 {
@@ -431,8 +431,8 @@ SHA256HW_Final(unsigned char digest[32], SHA256_CTX * ctx)
 	memset(ctx->m.b + ctx->b_cnt, 0, 64 - 8 - ctx->b_cnt);
 
 	ctx->t_cnt <<= 3;
-	ctx->m.dw[14] = _byteswap_ulong((unsigned __int32)(ctx->t_cnt >> 32));
-	ctx->m.dw[15] = _byteswap_ulong((unsigned __int32)(ctx->t_cnt ));
+	ctx->m.dw[14] = _byteswap_ulong((uint32_t)(ctx->t_cnt >> 32));
+	ctx->m.dw[15] = _byteswap_ulong((uint32_t)(ctx->t_cnt ));
 
 	SHA256HW_ProcMsgBlock( ctx );
 
