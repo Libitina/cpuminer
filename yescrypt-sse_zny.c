@@ -400,16 +400,9 @@ blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
 	r--;
 	rT2P1 = r * 2 + 1;
 	if (Bin2_in_ROM) {
-//		PREFETCH(&Bin2[r * 2 + 1], _MM_HINT_NTA)
-//		PREFETCH(&Bin1[r * 2 + 1], _MM_HINT_T0)
 		PREFETCH(&Bin2[rT2P1], _MM_HINT_NTA)
 		PREFETCH(&Bin1[rT2P1], _MM_HINT_T0)
-//		for (i = 0; i < r; i++) {
 		for (i = 0, iT2=0; i < r; i++, iT2+=2) {
-//			PREFETCH(&Bin2[i * 2], _MM_HINT_NTA)
-//			PREFETCH(&Bin1[i * 2], _MM_HINT_T0)
-//			PREFETCH(&Bin2[i * 2 + 1], _MM_HINT_NTA)
-//			PREFETCH(&Bin1[i * 2 + 1], _MM_HINT_T0)
 			PREFETCH(&Bin2[iT2], _MM_HINT_NTA)
 			PREFETCH(&Bin1[iT2], _MM_HINT_T0)
 			PREFETCH(&Bin2[iT2 + 1], _MM_HINT_NTA)
@@ -417,18 +410,10 @@ blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
 			PREFETCH_OUT(&Bout[i], _MM_HINT_T0)
 			PREFETCH_OUT(&Bout[r + 1 + i], _MM_HINT_T0)
 		}
-//		PREFETCH(&Bin2[r * 2], _MM_HINT_T0)
 	} else {
-//		PREFETCH(&Bin2[r * 2 + 1], _MM_HINT_T0)
-//		PREFETCH(&Bin1[r * 2 + 1], _MM_HINT_T0)
 		PREFETCH(&Bin2[rT2P1], _MM_HINT_T0)
 		PREFETCH(&Bin1[rT2P1], _MM_HINT_T0)
-//		for (i = 0; i < r; i++) {
 		for (i = 0, iT2=0; i < r; i++, iT2+=2) {
-//			PREFETCH(&Bin2[i * 2], _MM_HINT_T0)
-//			PREFETCH(&Bin1[i * 2], _MM_HINT_T0)
-//			PREFETCH(&Bin2[i * 2 + 1], _MM_HINT_T0)
-//			PREFETCH(&Bin1[i * 2 + 1], _MM_HINT_T0)
 			PREFETCH(&Bin2[iT2], _MM_HINT_T0)
 			PREFETCH(&Bin1[iT2], _MM_HINT_T0)
 			PREFETCH(&Bin2[iT2 + 1], _MM_HINT_T0)
@@ -436,12 +421,10 @@ blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
 			PREFETCH_OUT(&Bout[i], _MM_HINT_T0)
 			PREFETCH_OUT(&Bout[r + 1 + i], _MM_HINT_T0)
 		}
-//		PREFETCH(&Bin2[r * 2], _MM_HINT_T0)
 	}
 	PREFETCH(&Bin2[r * 2], _MM_HINT_T0)
 	PREFETCH(&Bin1[r * 2], _MM_HINT_T0)
 	PREFETCH_OUT(&Bout[r], _MM_HINT_T0)
-//	PREFETCH_OUT(&Bout[r * 2 + 1], _MM_HINT_T0)
 	PREFETCH_OUT(&Bout[rT2P1], _MM_HINT_T0)
 
 	/* 1: X <-- B_{2r - 1} */
@@ -455,13 +438,10 @@ blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
 	SALSA20_8_XOR_MEM(Bin2[0].q, Bout[0].q)
 
 	/* 2: for i = 0 to 2r - 1 do */
-//	for (i = 0; i < r;) {
 	for (i = 0, j=1; i < r;) {
 		/* 3: X <-- H(X \xor B_i) */
 		/* 4: Y_i <-- X */
 		/* 6: B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-//		XOR4(Bin1[i * 2 + 1].q)
-//		SALSA20_8_XOR_MEM(Bin2[i * 2 + 1].q, Bout[r + 1 + i].q)
 		XOR4(Bin1[j].q)
 		SALSA20_8_XOR_MEM(Bin2[j].q, Bout[r + 1 + i].q)
 
@@ -471,8 +451,6 @@ blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
 		/* 3: X <-- H(X \xor B_i) */
 		/* 4: Y_i <-- X */
 		/* 6: B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-//		XOR4(Bin1[i * 2].q)
-//		SALSA20_8_XOR_MEM(Bin2[i * 2].q, Bout[i].q)
 		XOR4(Bin1[j].q)
 		SALSA20_8_XOR_MEM(Bin2[j].q, Bout[i].q)
 		j++;
@@ -481,8 +459,6 @@ blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
 	/* 3: X <-- H(X \xor B_i) */
 	/* 4: Y_i <-- X */
 	/* 6: B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-//	XOR4(Bin1[r * 2 + 1].q)
-//	SALSA20_8_XOR_MEM(Bin2[r * 2 + 1].q, Bout[r * 2 + 1].q)
 	XOR4(Bin1[rT2P1].q)
 	SALSA20_8_XOR_MEM(Bin2[rT2P1].q, Bout[rT2P1].q)
 
@@ -569,16 +545,9 @@ blockmix_salsa8_xor_save(const salsa20_blk_t *restrict Bin1,
 
 	r--;
 	rT2P1 = r * 2 + 1;
-//	PREFETCH(&Bin2[r * 2 + 1], _MM_HINT_T0)
-//	PREFETCH(&Bin1[r * 2 + 1], _MM_HINT_T0)
 	PREFETCH(&Bin2[rT2P1], _MM_HINT_T0)
 	PREFETCH(&Bin1[rT2P1], _MM_HINT_T0)
-//	for (i = 0; i < r; i++) {
-	for (i = 0i, iT2=0; i < r; i++, iT2+=2) {
-//		PREFETCH(&Bin2[i * 2], _MM_HINT_T0)
-//		PREFETCH(&Bin1[i * 2], _MM_HINT_T0)
-//		PREFETCH(&Bin2[i * 2 + 1], _MM_HINT_T0)
-//		PREFETCH(&Bin1[i * 2 + 1], _MM_HINT_T0)
+	for (i = 0, iT2=0; i < r; i++, iT2+=2) {
 		PREFETCH(&Bin2[iT2], _MM_HINT_T0)
 		PREFETCH(&Bin1[iT2], _MM_HINT_T0)
 		PREFETCH(&Bin2[iT2 + 1], _MM_HINT_T0)
@@ -589,11 +558,9 @@ blockmix_salsa8_xor_save(const salsa20_blk_t *restrict Bin1,
 	PREFETCH(&Bin2[r * 2], _MM_HINT_T0)
 	PREFETCH(&Bin1[r * 2], _MM_HINT_T0)
 	PREFETCH_OUT(&Bout[r], _MM_HINT_T0)
-//	PREFETCH_OUT(&Bout[r * 2 + 1], _MM_HINT_T0)
 	PREFETCH_OUT(&Bout[rT2P1], _MM_HINT_T0)
 
 	/* 1: X <-- B_{2r - 1} */
-//	XOR4_2(Bin1[r * 2 + 1].q, Bin2[r * 2 + 1].q)
 	XOR4_2(Bin1[rT2P1].q, Bin2[rT2P1].q)
 
 	/* 3: X <-- H(X \xor B_i) */
@@ -603,12 +570,10 @@ blockmix_salsa8_xor_save(const salsa20_blk_t *restrict Bin1,
 	SALSA20_8_XOR_REG(Bout[0].q)
 
 	/* 2: for i = 0 to 2r - 1 do */
-//	for (i = 0; i < r;) {
 	for (i = 0, j=1; i < r;) {
 		/* 3: X <-- H(X \xor B_i) */
 		/* 4: Y_i <-- X */
 		/* 6: B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-//		XOR4(Bin1[i * 2 + 1].q, Bin2[i * 2 + 1].q)
 		XOR4(Bin1[j].q, Bin2[j].q)
 		SALSA20_8_XOR_REG(Bout[r + 1 + i].q)
 
@@ -618,7 +583,6 @@ blockmix_salsa8_xor_save(const salsa20_blk_t *restrict Bin1,
 		/* 3: X <-- H(X \xor B_i) */
 		/* 4: Y_i <-- X */
 		/* 6: B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-//		XOR4(Bin1[i * 2].q, Bin2[i * 2].q)
 		XOR4(Bin1[j].q, Bin2[j].q)
 		SALSA20_8_XOR_REG(Bout[i].q)
 		j++;
@@ -627,8 +591,6 @@ blockmix_salsa8_xor_save(const salsa20_blk_t *restrict Bin1,
 	/* 3: X <-- H(X \xor B_i) */
 	/* 4: Y_i <-- X */
 	/* 6: B' <-- (Y_0, Y_2 ... Y_{2r-2}, Y_1, Y_3 ... Y_{2r-1}) */
-//	XOR4(Bin1[r * 2 + 1].q, Bin2[r * 2 + 1].q)
-//	SALSA20_8_XOR_REG(Bout[r * 2 + 1].q)
 	XOR4(Bin1[rT2P1].q, Bin2[rT2P1].q)
 	SALSA20_8_XOR_REG(Bout[rT2P1].q)
 
@@ -726,9 +688,11 @@ integerify(const salsa20_blk_t * B, size_t r)
  * smaller than 2.  The array V must be aligned to a multiple of 64 bytes, and
  * arrays B and XY to a multiple of at least 16 bytes (aligning them to 64
  * bytes as well saves cache lines, but might result in cache bank conflicts).
+ *
+ * r=1or8
  */
 static void
-smix1(uint8_t * B, size_t r, const uint32_t N, yescrypt_flags_t flags,
+smix1(uint8_t * B, const size_t r, const uint32_t N, yescrypt_flags_t flags,
     salsa20_blk_t * V, const uint32_t NROM, const yescrypt_shared_t * shared,
     salsa20_blk_t * XY, void * S)
 {
@@ -750,74 +714,77 @@ smix1(uint8_t * B, size_t r, const uint32_t N, yescrypt_flags_t flags,
 		}
 	}
 
-		uint32_t n;
-		salsa20_blk_t * V_n, * V_j;
+	uint32_t n;
+	salsa20_blk_t * V_n, * V_j;
 
-		/* 4: X <-- H(X) */
-		/* 3: V_i <-- X */
-		Y = &V[s];
-		blockmix(X, Y, r, S);
+	/* 4: X <-- H(X) */
+	/* 3: V_i <-- X */
+	Y = &V[s];
+	blockmix(X, Y, r, S);
 
-		/* 4: X <-- H(X) */
-		/* 3: V_i <-- X */
-		X = &V[2 * s];
-		blockmix(Y, X, r, S);
-		j = integerify(X, r);
+	/* 4: X <-- H(X) */
+	/* 3: V_i <-- X */
+	X = &V[2 * s];
+	blockmix(Y, X, r, S);
+	j = integerify(X, r);
 
-		for (n = 2; n < N; n <<= 1) {
-			uint32_t m = (n < ND2) ? n : (NM1 - n);
+	for (n = 2; n < N; n <<= 1) {
+		uint32_t m = (n < ND2) ? n : (NM1 - n);
 
-			V_n = &V[n * s];
+		V_n = &V[n * s];
 
-			/* 2: for i = 0 to N - 1 do */
-			for (i = 1; i < m; i += 2) {
-				Y = &V_n[i * s];
+		/* 2: for i = 0 to N - 1 do */
+//		for (i = 1; i < m; i += 2) {
+		for (i = 1; i < m; i++) {
+			Y = &V_n[i * s];
 
-				/* j <-- Wrap(Integerify(X), i) */
-				j &= n - 1;
-				j += i - 1;
-				V_j = &V[j * s];
+			/* j <-- Wrap(Integerify(X), i) */
+			j &= n - 1;
+			j += i - 1;
+			V_j = &V[j * s];
 
-				/* X <-- X \xor V_j */
-				/* 4: X <-- H(X) */
-				/* 3: V_i <-- X */
-				j = blockmix_xor(X, V_j, Y, r, 0, S);
+			/* X <-- X \xor V_j */
+			/* 4: X <-- H(X) */
+			/* 3: V_i <-- X */
+			j = blockmix_xor(X, V_j, Y, r, 0, S);
 
-				/* j <-- Wrap(Integerify(X), i) */
-				j &= n - 1;
-				j += i;
-				V_j = &V[j * s];
+			i++;
+			/* j <-- Wrap(Integerify(X), i) */
+			j &= n - 1;
+//			j += i;
+			j += i - 1;
+			V_j = &V[j * s];
 
-				/* X <-- X \xor V_j */
-				/* 4: X <-- H(X) */
-				/* 3: V_i <-- X */
-				X = &V_n[(i + 1) * s];
-				j = blockmix_xor(Y, V_j, X, r, 0, S);
-			}
+			/* X <-- X \xor V_j */
+			/* 4: X <-- H(X) */
+			/* 3: V_i <-- X */
+			X = &V_n[i * s];
+			j = blockmix_xor(Y, V_j, X, r, 0, S);
 		}
+	}
 
-		n >>= 1;
+	n >>= 1;
 
-		/* j <-- Wrap(Integerify(X), i) */
-		j &= n - 1;
-		j += N - 2 - n;
-		V_j = &V[j * s];
+	/* j <-- Wrap(Integerify(X), i) */
+	j &= n - 1;
+	j += N - 2 - n;
+	V_j = &V[j * s];
 
-		/* X <-- X \xor V_j */
-		/* 4: X <-- H(X) */
-		/* 3: V_i <-- X */
-		Y = &V[(NM1) * s];
-		j = blockmix_xor(X, V_j, Y, r, 0, S);
+	/* X <-- X \xor V_j */
+	/* 4: X <-- H(X) */
+	/* 3: V_i <-- X */
+	Y = &V[(NM1) * s];
+	j = blockmix_xor(X, V_j, Y, r, 0, S);
 
-		/* j <-- Wrap(Integerify(X), i) */
-		j &= n - 1;
-		j += NM1 - n;
-		V_j = &V[j * s];
+	/* j <-- Wrap(Integerify(X), i) */
+	j &= n - 1;
+	j += NM1 - n;
+	V_j = &V[j * s];
 
-		/* X <-- X \xor V_j */
-		/* 4: X <-- H(X) */
-		X = XY;
-		blockmix_xor(Y, V_j, X, r, 0, S);
+	/* X <-- X \xor V_j */
+	/* 4: X <-- H(X) */
+	X = XY;
+	blockmix_xor(Y, V_j, X, r, 0, S);
 
 	/* B' <-- X */
 	for (k = 0; k < s; k++) {
