@@ -1035,10 +1035,10 @@ yescrypt_kdf(const yescrypt_shared_t * shared, yescrypt_local_t * local,
 		errno = ENOMEM;
 		return -1;
 	}
-	if (p > SIZE_MAX / S_SIZE_ALL) {
-		errno = ENOMEM;
-		return -1;
-	}
+//	if (p > SIZE_MAX / S_SIZE_ALL) {
+//		errno = ENOMEM;
+//		return -1;
+//	}
 
 	NROM = 0;
 

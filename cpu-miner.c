@@ -711,12 +711,14 @@ static void share_result(int result, const char *reason)
 	result ? accepted_count++ : rejected_count++;
 	pthread_mutex_unlock(&stats_lock);
 
-	sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.4f", 1e-3 * hashrate);
-	applog(LOG_INFO, "accepted: %lu/%lu (%.4f%%), %s khash/s %s",
+//	sprintf(s, (hashrate >= 1e6) ? "%.0lf" : "%.4lf", 1e-3 * hashrate);
+//	applog(LOG_INFO, "accepted: %lu/%lu (%.4f%%), %s khash/s %s",
+	applog(LOG_INFO, "accepted: %lu/%lu (%.4f%%), %.4lf khash/s %s",
 		   accepted_count,
 		   accepted_count + rejected_count,
-		   100. * accepted_count / (accepted_count + rejected_count),
-		   s,
+		   100. * (float)accepted_count / (float)(accepted_count + rejected_count),
+//		   s,
+		   1e-3 * hashrate,
 		   result ? "(yay!!!)" : "(booooo)");
 
 	if (opt_debug && reason)

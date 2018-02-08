@@ -126,7 +126,7 @@ static inline void le32enc(void *pp, uint32_t x)
 static inline uint32_t
 _byteswap_ulong(uint32_t in)
 {
-	return (in & 0xff)<<24 | (in & 0xff00)<<8 | (in>>8) & 0xff00 | (in>>24) & 0xff;
+	return ((in & 0xff)<<24) | ((in & 0xff00)<<8) | ((in>>8) & 0xff00) | ((in>>24) & 0xff);
 }
 #endif
 
