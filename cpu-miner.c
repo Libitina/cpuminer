@@ -88,12 +88,18 @@ static inline void drop_policy(void)
 
 static inline void affine_to_cpu(int id, int cpu)
 {
-	cpu_set_t set;
-	CPU_ZERO(&set);
-	CPU_SET(cpu, &set);
+//	cpu_set_t set;
+//	CPU_ZERO(&set);
+//	CPU_SET(cpu, &set);
 
-	pthread_t thr = pthread_self();
-	pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
+//	pthread_t thr = pthread_self();
+//	pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
+
+	uint32_t mask = 0xFFFFFFFF;
+	if( (0<=cpu) && (cpu <= 32) ) {
+		mask = 1u<<(cpu - 1);
+	}
+	SetThreadAffinityMask(GetCurrentThread(), mask);
 }
 #elif defined(__APPLE_)
 #include <mach/thread_policy.h>
