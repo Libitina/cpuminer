@@ -68,7 +68,7 @@ static inline void affine_to_cpu(int id, int cpu)
 	pthread_setaffinity_np(thr, sizeof(cpu_set_t), &set);
 }
 #elif defined(__FreeBSD__) /* FreeBSD specific policy and affinity management */
-#include <sys/cpufdef __MINGW32__ifdef __MINGW32__set.h>
+#include <sys/cpuset.h>
 static inline void drop_policy(void)
 {
 }
