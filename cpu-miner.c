@@ -97,7 +97,7 @@ static inline void affine_to_cpu(int id, int cpu)
 
 	uint32_t mask = 0xFFFFFFFF;
 	if( (0<=cpu) && (cpu <= 32) ) {
-		mask = 1u<<(cpu - 1);
+		mask = 1u<<cpu;
 	}
 	SetThreadAffinityMask(GetCurrentThread(), mask);
 }
